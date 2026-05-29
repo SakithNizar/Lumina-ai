@@ -1,32 +1,71 @@
+const functions = require("firebase-functions");
+const admin = require("firebase-admin");
+const express = require("express");
+const cors = require("cors");
+const { GoogleGenerativeAI } = require("@google/generative-ai");
+require("dotenv").config();
+
+// Initialize Firebase Admin (Required for Firestore database)
+admin.initializeApp();
+const db = admin.firestore();
+
+// Initialize Express Application
+const app = express();
+app.use(cors({ origin: true }));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Initialize Gemini SDK
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+
 /**
- * Import function triggers from their respective submodules:
- *
- * const {onCall} = require("firebase-functions/v2/https");
- * const {onDocumentWritten} = require("firebase-functions/v2/firestore");
- *
- * See a full list of supported triggers at https://firebase.google.com/docs/functions
+ * POST /webhook/social
+ * Receives raw text from a webhook and generates a social media post via Gemini.
  */
+app.post("/webhook/social", async (req, res) => {
+  try {
+    // 1. Extract payload (Compatible with Twilio or custom webhooks)
+    const rawInput = req.body.Body || req.body.text;
+    
+    if (!rawInput) {
+        return res.status(400).json({ success: false, error: "No text input provided." });
+    }
 
-const {setGlobalOptions} = require("firebase-functions");
-const {onRequest} = require("firebase-functions/https");
-const logger = require("firebase-functions/logger");
+    // 2. Configure Gemini Model and Prompt
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const systemInstruction = `You are an expert social media manager for a local business. 
+    Take the raw, short text message provided and turn it into an engaging, professional, 
+    and exciting social media post. Include relevant emojis and up to 4 hashtags. 
+    Return ONLY the post text.`;
 
-// For cost control, you can set the maximum number of containers that can be
-// running at the same time. This helps mitigate the impact of unexpected
-// traffic spikes by instead downgrading performance. This limit is a
-// per-function limit. You can override the limit for each function using the
-// `maxInstances` option in the function's options, e.g.
-// `onRequest({ maxInstances: 5 }, (req, res) => { ... })`.
-// NOTE: setGlobalOptions does not apply to functions using the v1 API. V1
-// functions should each use functions.runWith({ maxInstances: 10 }) instead.
-// In the v1 API, each function can only serve one request per container, so
-// this will be the maximum concurrent request count.
-setGlobalOptions({ maxInstances: 10 });
+    const prompt = `${systemInstruction}\n\nRaw Text: "${rawInput}"`;
 
-// Create and deploy your first functions
-// https://firebase.google.com/docs/functions/get-started
+    // 3. Execute AI Generation
+    const result = await model.generateContent(prompt);
+    const generatedText = result.response.text();
 
-// exports.helloWorld = onRequest((request, response) => {
-//   logger.info("Hello logs!", {structuredData: true});
-//   response.send("Hello from Firebase!");
-// });
+    // 4. Log to Firestore for the UI to consume
+    const postRecord = {
+      rawInput: rawInput,
+      generatedText: generatedText,
+      status: "published",
+      timestamp: admin.firestore.FieldValue.serverTimestamp(),
+    };
+    
+    await db.collection("socialPosts").add(postRecord);
+
+    // 5. Respond to Webhook Provider
+    return res.status(200).json({ 
+      success: true, 
+      message: "Post generated successfully",
+      data: postRecord
+    });
+
+  } catch (error) {
+    console.error("AI Agent Execution Error:", error);
+    return res.status(500).json({ success: false, error: "Internal Server Error during AI execution" });
+  }
+});
+
+// Expose the Express app as a single Firebase Cloud Function
+exports.api = functions.https.onRequest(app);
