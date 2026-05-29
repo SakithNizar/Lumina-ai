@@ -1,3 +1,4 @@
+const { FieldValue } = require("firebase-admin/firestore");
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const express = require("express");
@@ -32,7 +33,7 @@ app.post("/webhook/social", async (req, res) => {
     }
 
     // 2. Configure Gemini Model and Prompt
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
     const systemInstruction = `You are an expert social media manager for a local business. 
     Take the raw, short text message provided and turn it into an engaging, professional, 
     and exciting social media post. Include relevant emojis and up to 4 hashtags. 
@@ -49,7 +50,7 @@ app.post("/webhook/social", async (req, res) => {
       rawInput: rawInput,
       generatedText: generatedText,
       status: "published",
-      timestamp: admin.firestore.FieldValue.serverTimestamp(),
+      timestamp: FieldValue.serverTimestamp(),
     };
     
     await db.collection("socialPosts").add(postRecord);
