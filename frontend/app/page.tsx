@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react";
 import { collection, onSnapshot, orderBy, query } from "firebase/firestore";
 import { db } from "../lib/firebase";
+import { motion, AnimatePresence } from "framer-motion";
+import { Sparkles, CheckCircle2, MessageSquare, Clock } from "lucide-react";
 
-// Define the shape of the data coming from Firestore
 interface SocialPost {
   id: string;
   rawInput: string;
@@ -18,10 +19,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Query the database to pull the latest posts first
     const q = query(collection(db, "socialPosts"), orderBy("timestamp", "desc"));
-
-    // Set up a real-time listener
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const postsData = snapshot.docs.map((doc) => ({
         id: doc.id,
@@ -32,51 +30,96 @@ export default function Dashboard() {
       setLoading(false);
     });
 
-    // Cleanup listener when the component unmounts
     return () => unsubscribe();
   }, []);
 
   return (
-    <main className="min-h-screen bg-gray-50 p-8">
+    <main className="min-h-screen bg-[#F8FAFC] p-8 font-sans selection:bg-blue-100 selection:text-blue-900">
       <div className="max-w-5xl mx-auto">
-        <header className="mb-10">
-          <h1 className="text-3xl font-bold text-gray-900">Agent AI Dashboard</h1>
-          <p className="text-gray-500 mt-2">Live stream of generated social media posts.</p>
-        </header>
+        
+        {/* Animated Header */}
+        <motion.header 
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: "easeOut" }}
+          className="mb-12 flex items-center justify-between"
+        >
+          <div>
+            <h1 className="text-4xl font-extrabold text-slate-900 tracking-tight flex items-center gap-3">
+              <Sparkles className="w-8 h-8 text-blue-500" />
+              Pulse AI
+            </h1>
+            <p className="text-slate-500 mt-2 font-medium">Real-time social media generation engine.</p>
+          </div>
+          
+          <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-full shadow-sm border border-slate-200">
+            <div className="w-2.5 h-2.5 bg-green-500 rounded-full animate-pulse"></div>
+            <span className="text-sm font-semibold text-slate-600">System Live</span>
+          </div>
+        </motion.header>
 
         {loading ? (
-          <div className="flex justify-center py-20">
-            <div className="animate-pulse text-gray-400 font-medium tracking-wide">Loading Agent Data...</div>
+          <div className="flex justify-center py-32">
+            <motion.div 
+              animate={{ rotate: 360 }} 
+              transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+            >
+              <Clock className="w-8 h-8 text-slate-300" />
+            </motion.div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {posts.map((post) => (
-              <div key={post.id} className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 transition-all hover:shadow-md">
-                <div className="flex justify-between items-center mb-4">
-                  <span className="px-3 py-1 bg-green-100 text-green-700 text-xs font-semibold rounded-full uppercase tracking-wide">
-                    {post.status || "Published"}
-                  </span>
-                </div>
-                
-                <div className="mb-5">
-                  <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">AI Generated Copy</h3>
-                  <p className="text-gray-800 whitespace-pre-wrap leading-relaxed">{post.generatedText}</p>
-                </div>
+          <motion.div 
+            layout 
+            className="grid grid-cols-1 md:grid-cols-2 gap-6"
+          >
+            <AnimatePresence>
+              {posts.map((post, index) => (
+                <motion.div 
+                  key={post.id}
+                  layout
+                  initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: index * 0.05, ease: "easeOut" }}
+                  className="bg-white p-7 rounded-2xl shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] border border-slate-100 hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-shadow group"
+                >
+                  <div className="flex justify-between items-center mb-6">
+                    <span className="flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-600 text-xs font-bold rounded-full uppercase tracking-wider">
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      {post.status || "Published"}
+                    </span>
+                  </div>
+                  
+                  <div className="mb-6">
+                    <p className="text-slate-800 text-lg leading-relaxed whitespace-pre-wrap font-medium">
+                      {post.generatedText}
+                    </p>
+                  </div>
 
-                <div className="pt-4 border-t border-gray-100">
-                  <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Raw Input Prompt</h3>
-                  <p className="text-sm text-gray-500 italic">"{post.rawInput}"</p>
-                </div>
-              </div>
-            ))}
+                  <div className="pt-5 border-t border-slate-100 flex items-start gap-3 bg-slate-50 p-4 rounded-xl">
+                    <MessageSquare className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
+                    <div>
+                      <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Raw Input Prompt</h3>
+                      <p className="text-sm text-slate-600 italic">"{post.rawInput}"</p>
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </AnimatePresence>
             
             {posts.length === 0 && (
-              <div className="col-span-full text-center p-16 bg-white rounded-xl border border-dashed border-gray-300">
-                <p className="text-gray-500 font-medium">No posts generated yet.</p>
-                <p className="text-sm text-gray-400 mt-1">Trigger your webhook to see the AI flow in real-time.</p>
-              </div>
+              <motion.div 
+                initial={{ opacity: 0 }} 
+                animate={{ opacity: 1 }} 
+                className="col-span-full flex flex-col items-center justify-center p-20 bg-white/50 backdrop-blur-sm rounded-3xl border-2 border-dashed border-slate-200"
+              >
+                <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center mb-4">
+                  <Sparkles className="w-8 h-8 text-blue-400" />
+                </div>
+                <p className="text-slate-600 font-semibold text-lg">Awaiting Instructions</p>
+                <p className="text-slate-400 mt-2 text-center max-w-sm">Fire your webhook to see the AI agent generate and animate new posts into the feed.</p>
+              </motion.div>
             )}
-          </div>
+          </motion.div>
         )}
       </div>
     </main>
