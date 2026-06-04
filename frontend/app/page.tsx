@@ -45,7 +45,7 @@ export default function Dashboard() {
     setIsGenerating(true);
     try {
       // REPLACE THIS URL with your live Firebase Function URL, or use http://127.0.0.1:5001/... for local testing
-      const webhookUrl = "YOUR_CLOUD_FUNCTION_URL_HERE"; 
+      const webhookUrl = "http://127.0.0.1:5001/agent-ai-fd414/us-central1/api/webhook/social"; 
       
       await fetch(webhookUrl, {
         method: "POST",
