@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { collection, onSnapshot, orderBy, query, doc, updateDoc, deleteDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, CheckCircle2, MessageSquare, Clock, Check, Trash2 } from "lucide-react";
+import { Sparkles, CheckCircle2, MessageSquare, Clock, Check, Trash2, Send, Loader2 } from "lucide-react";
 
 interface SocialPost {
   id: string;
@@ -17,6 +17,10 @@ interface SocialPost {
 export default function Dashboard() {
   const [posts, setPosts] = useState<SocialPost[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // --- NEW: State for the input form ---
+  const [prompt, setPrompt] = useState("");
+  const [isGenerating, setIsGenerating] = useState(false);
 
   useEffect(() => {
     const q = query(collection(db, "socialPosts"), orderBy("timestamp", "desc"));
@@ -33,7 +37,30 @@ export default function Dashboard() {
     return () => unsubscribe();
   }, []);
 
-  // --- NEW: Database Mutation Functions ---
+  // --- NEW: Trigger Backend from UI ---
+  const handleGenerate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!prompt.trim()) return;
+
+    setIsGenerating(true);
+    try {
+      // REPLACE THIS URL with your live Firebase Function URL, or use http://127.0.0.1:5001/... for local testing
+      const webhookUrl = "YOUR_CLOUD_FUNCTION_URL_HERE"; 
+      
+      await fetch(webhookUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: prompt }),
+      });
+      
+      setPrompt(""); // Clear the input field after sending
+    } catch (error) {
+      console.error("Error generating post:", error);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   const handleApprove = async (id: string) => {
     try {
       const postRef = doc(db, "socialPosts", id);
@@ -60,7 +87,7 @@ export default function Dashboard() {
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, ease: "easeOut" }}
-          className="mb-12 flex items-center justify-between"
+          className="mb-8 flex items-center justify-between"
         >
           <div>
             <h1 className="text-4xl font-extrabold text-slate-900 tracking-tight flex items-center gap-3">
@@ -76,12 +103,48 @@ export default function Dashboard() {
           </div>
         </motion.header>
 
+        {/* --- NEW: Interactive Input Form --- */}
+        <motion.form 
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          onSubmit={handleGenerate} 
+          className="mb-12 bg-white p-2 pl-6 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-4 focus-within:ring-2 focus-within:ring-blue-100 focus-within:border-blue-300 transition-all"
+        >
+          <input
+            type="text"
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            placeholder="Type a prompt to generate a new post... (e.g., 'launching a new feature')"
+            className="flex-1 bg-transparent border-none outline-none text-slate-700 placeholder:text-slate-400 py-4"
+            disabled={isGenerating}
+          />
+          <button
+            type="submit"
+            disabled={!prompt.trim() || isGenerating}
+            className={`flex items-center gap-2 px-6 py-3.5 rounded-xl font-bold text-white transition-all ${
+              !prompt.trim() || isGenerating 
+                ? "bg-slate-300 cursor-not-allowed" 
+                : "bg-blue-600 hover:bg-blue-700 hover:shadow-md active:scale-95"
+            }`}
+          >
+            {isGenerating ? (
+              <>
+                <Loader2 className="w-5 h-5 animate-spin" />
+                Generating...
+              </>
+            ) : (
+              <>
+                <Send className="w-5 h-5" />
+                Generate
+              </>
+            )}
+          </button>
+        </motion.form>
+
         {loading ? (
           <div className="flex justify-center py-32">
-            <motion.div 
-              animate={{ rotate: 360 }} 
-              transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
-            >
+            <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: "linear" }}>
               <Clock className="w-8 h-8 text-slate-300" />
             </motion.div>
           </div>
@@ -123,7 +186,6 @@ export default function Dashboard() {
                     </div>
                   </div>
 
-                  {/* --- NEW: Interactive Action Buttons --- */}
                   <div className="flex gap-3 pt-4 border-t border-slate-100">
                     <button 
                       onClick={() => handleApprove(post.id)}
@@ -160,7 +222,7 @@ export default function Dashboard() {
                   <Sparkles className="w-8 h-8 text-blue-400" />
                 </div>
                 <p className="text-slate-600 font-semibold text-lg">Awaiting Instructions</p>
-                <p className="text-slate-400 mt-2 text-center max-w-sm">Fire your webhook to see the AI agent generate and animate new posts into the feed.</p>
+                <p className="text-slate-400 mt-2 text-center max-w-sm">Type a prompt above to generate your first AI post.</p>
               </motion.div>
             )}
           </motion.div>
