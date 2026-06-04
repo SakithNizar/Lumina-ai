@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { collection, onSnapshot, orderBy, query } from "firebase/firestore";
+import { collection, onSnapshot, orderBy, query, doc, updateDoc, deleteDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, CheckCircle2, MessageSquare, Clock } from "lucide-react";
+import { Sparkles, CheckCircle2, MessageSquare, Clock, Check, Trash2 } from "lucide-react";
 
 interface SocialPost {
   id: string;
@@ -33,11 +33,29 @@ export default function Dashboard() {
     return () => unsubscribe();
   }, []);
 
+  // --- NEW: Database Mutation Functions ---
+  const handleApprove = async (id: string) => {
+    try {
+      const postRef = doc(db, "socialPosts", id);
+      await updateDoc(postRef, { status: "Approved" });
+    } catch (error) {
+      console.error("Error approving post:", error);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      const postRef = doc(db, "socialPosts", id);
+      await deleteDoc(postRef);
+    } catch (error) {
+      console.error("Error deleting post:", error);
+    }
+  };
+
   return (
     <main className="min-h-screen bg-[#F8FAFC] p-8 font-sans selection:bg-blue-100 selection:text-blue-900">
       <div className="max-w-5xl mx-auto">
         
-        {/* Animated Header */}
         <motion.header 
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -47,7 +65,7 @@ export default function Dashboard() {
           <div>
             <h1 className="text-4xl font-extrabold text-slate-900 tracking-tight flex items-center gap-3">
               <Sparkles className="w-8 h-8 text-blue-500" />
-              Pulse AI
+              Lumina AI
             </h1>
             <p className="text-slate-500 mt-2 font-medium">Real-time social media generation engine.</p>
           </div>
@@ -68,10 +86,7 @@ export default function Dashboard() {
             </motion.div>
           </div>
         ) : (
-          <motion.div 
-            layout 
-            className="grid grid-cols-1 md:grid-cols-2 gap-6"
-          >
+          <motion.div layout className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <AnimatePresence>
               {posts.map((post, index) => (
                 <motion.div 
@@ -79,28 +94,57 @@ export default function Dashboard() {
                   layout
                   initial={{ opacity: 0, scale: 0.9, y: 20 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
                   transition={{ duration: 0.4, delay: index * 0.05, ease: "easeOut" }}
-                  className="bg-white p-7 rounded-2xl shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] border border-slate-100 hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-shadow group"
+                  className="bg-white p-7 rounded-2xl shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] border border-slate-100 hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-shadow flex flex-col justify-between"
                 >
-                  <div className="flex justify-between items-center mb-6">
-                    <span className="flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-600 text-xs font-bold rounded-full uppercase tracking-wider">
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      {post.status || "Published"}
-                    </span>
-                  </div>
-                  
-                  <div className="mb-6">
-                    <p className="text-slate-800 text-lg leading-relaxed whitespace-pre-wrap font-medium">
-                      {post.generatedText}
-                    </p>
+                  <div>
+                    <div className="flex justify-between items-center mb-6">
+                      <span className={`flex items-center gap-1.5 px-3 py-1 text-xs font-bold rounded-full uppercase tracking-wider ${
+                        post.status === "Approved" ? "bg-emerald-50 text-emerald-600" : "bg-amber-50 text-amber-600"
+                      }`}>
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        {post.status || "Draft Review"}
+                      </span>
+                    </div>
+                    
+                    <div className="mb-6">
+                      <p className="text-slate-800 text-lg leading-relaxed whitespace-pre-wrap font-medium">
+                        {post.generatedText}
+                      </p>
+                    </div>
+
+                    <div className="pt-4 pb-6 flex items-start gap-3">
+                      <MessageSquare className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
+                      <div>
+                        <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Raw Input Prompt</h3>
+                        <p className="text-sm text-slate-600 italic">"{post.rawInput}"</p>
+                      </div>
+                    </div>
                   </div>
 
-                  <div className="pt-5 border-t border-slate-100 flex items-start gap-3 bg-slate-50 p-4 rounded-xl">
-                    <MessageSquare className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
-                    <div>
-                      <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Raw Input Prompt</h3>
-                      <p className="text-sm text-slate-600 italic">"{post.rawInput}"</p>
-                    </div>
+                  {/* --- NEW: Interactive Action Buttons --- */}
+                  <div className="flex gap-3 pt-4 border-t border-slate-100">
+                    <button 
+                      onClick={() => handleApprove(post.id)}
+                      disabled={post.status === "Approved"}
+                      className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl font-semibold transition-all ${
+                        post.status === "Approved" 
+                        ? "bg-slate-50 text-slate-400 cursor-not-allowed" 
+                        : "bg-blue-50 text-blue-600 hover:bg-blue-100 hover:shadow-sm"
+                      }`}
+                    >
+                      <Check className="w-4 h-4" />
+                      {post.status === "Approved" ? "Approved" : "Approve Draft"}
+                    </button>
+                    
+                    <button 
+                      onClick={() => handleDelete(post.id)}
+                      className="px-4 py-2.5 bg-red-50 text-red-500 rounded-xl hover:bg-red-100 hover:text-red-600 transition-colors flex items-center justify-center"
+                      title="Delete Draft"
+                    >
+                      <Trash2 className="w-4.5 h-4.5" />
+                    </button>
                   </div>
                 </motion.div>
               ))}
