@@ -2,13 +2,12 @@ import { initializeApp, getApps, getApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDgW9-2WKLS7jUrU2kG4N1hYIXG0jhlk78",
-  authDomain: "agent-ai-fd414.firebaseapp.com",
-  projectId: "agent-ai-fd414",
-  storageBucket: "agent-ai-fd414.firebasestorage.app",
-  messagingSenderId: "937510287770",
-  appId: "1:937510287770:web:f03affe4120accdeaf6223",
-  measurementId: "G-9NG2FY3VNY"
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID
 };
 
 // Initialize Firebase (Prevents re-initializing if the file hot-reloads during dev)
