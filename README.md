@@ -1,11 +1,11 @@
 # ✨ Lumina AI
 
-**A real-time, human-in-the-loop AI agent for social media content generation.**
+**A real-time, human-in-the-loop AI agent for social media content and caption generation.**
 
 Lumina AI solves the problem of unpredictable automated generation by offering a seamless "human-in-the-loop" workflow. It bridges robust serverless engineering with high-fidelity design, leveraging Google's Gemini AI to autonomously draft content while requiring human editorial approval before going live.
 
 ## 🚀 Live Demo
-**[Paste Your Live Vercel Link Here]**
+**(https://lumina-ai-eight-sigma.vercel.app/)**
 
 ## ✨ Key Features
 
