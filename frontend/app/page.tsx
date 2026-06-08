@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { collection, onSnapshot, orderBy, query, doc, updateDoc, deleteDoc } from "firebase/firestore";
+import { collection, onSnapshot, orderBy, query, doc, updateDoc, deleteDoc, addDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, CheckCircle2, MessageSquare, Clock, Check, Trash2, Send, Loader2 } from "lucide-react";
@@ -18,7 +18,7 @@ export default function Dashboard() {
   const [posts, setPosts] = useState<SocialPost[]>([]);
   const [loading, setLoading] = useState(true);
   
-  // --- NEW: State for the input form ---
+
   const [prompt, setPrompt] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
 
@@ -37,29 +37,40 @@ export default function Dashboard() {
     return () => unsubscribe();
   }, []);
 
-  // --- NEW: Trigger Backend from UI ---
+
   const handleGenerate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!prompt.trim()) return;
 
     setIsGenerating(true);
     try {
-      // REPLACE THIS URL with your live Firebase Function URL, or use http://127.0.0.1:5001/... for local testing
-      const webhookUrl = "http://127.0.0.1:5001/agent-ai-fd414/us-central1/api/webhook/social"; 
-      
-      await fetch(webhookUrl, {
+      // 1. Send prompt to our new Next.js backend
+      const response = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: prompt }),
+        body: JSON.stringify({ prompt: prompt }),
       });
       
-      setPrompt(""); // Clear the input field after sending
+      const data = await response.json();
+
+      // 2. If successful, save the AI text to Firebase so the UI updates!
+      if (data.success) {
+        await addDoc(collection(db, "socialPosts"), {
+          rawInput: prompt,
+          generatedText: data.text,
+          status: "Draft Review",
+          timestamp: serverTimestamp()
+        });
+      }
+      
+      setPrompt(""); // Clear the input field
     } catch (error) {
       console.error("Error generating post:", error);
     } finally {
       setIsGenerating(false);
     }
   };
+
 
   const handleApprove = async (id: string) => {
     try {
