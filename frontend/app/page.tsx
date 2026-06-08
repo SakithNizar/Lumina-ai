@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { collection, onSnapshot, orderBy, query, doc, updateDoc, deleteDoc, addDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, CheckCircle2, MessageSquare, Clock, Check, Trash2, Send, Loader2 } from "lucide-react";
+import { Sparkles, CheckCircle2, MessageSquare, Clock, Check, Trash2, Send, Loader2, Copy } from "lucide-react";
 
 interface SocialPost {
   id: string;
@@ -17,10 +17,14 @@ interface SocialPost {
 export default function Dashboard() {
   const [posts, setPosts] = useState<SocialPost[]>([]);
   const [loading, setLoading] = useState(true);
-  
-
   const [prompt, setPrompt] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
+
+  // --- Copy to Clipboard Function ---
+  const handleCopy = (text: string) => {
+    navigator.clipboard.writeText(text);
+    alert("Copied to clipboard!");
+  };
 
   useEffect(() => {
     const q = query(collection(db, "socialPosts"), orderBy("timestamp", "desc"));
@@ -37,14 +41,12 @@ export default function Dashboard() {
     return () => unsubscribe();
   }, []);
 
-
   const handleGenerate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!prompt.trim()) return;
 
     setIsGenerating(true);
     try {
-      // 1. Send prompt to our new Next.js backend
       const response = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -53,7 +55,6 @@ export default function Dashboard() {
       
       const data = await response.json();
 
-      // 2. If successful, save the AI text to Firebase so the UI updates!
       if (data.success) {
         await addDoc(collection(db, "socialPosts"), {
           rawInput: prompt,
@@ -63,14 +64,13 @@ export default function Dashboard() {
         });
       }
       
-      setPrompt(""); // Clear the input field
+      setPrompt("");
     } catch (error) {
       console.error("Error generating post:", error);
     } finally {
       setIsGenerating(false);
     }
   };
-
 
   const handleApprove = async (id: string) => {
     try {
@@ -114,7 +114,6 @@ export default function Dashboard() {
           </div>
         </motion.header>
 
-        {/* --- NEW: Interactive Input Form --- */}
         <motion.form 
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -126,7 +125,7 @@ export default function Dashboard() {
             type="text"
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
-            placeholder="Type a prompt to generate a new post... (e.g., 'launching a new feature')"
+            placeholder="Type a prompt to generate a new post..."
             className="flex-1 bg-transparent border-none outline-none text-slate-700 placeholder:text-slate-400 py-4"
             disabled={isGenerating}
           />
@@ -211,12 +210,21 @@ export default function Dashboard() {
                       {post.status === "Approved" ? "Approved" : "Approve Draft"}
                     </button>
                     
+                    {/* Copy Button */}
+                    <button 
+                      onClick={() => handleCopy(post.generatedText)}
+                      className="px-4 py-2.5 bg-slate-50 text-slate-500 rounded-xl hover:bg-slate-100 hover:text-slate-700 transition-colors flex items-center justify-center"
+                      title="Copy to Clipboard"
+                    >
+                      <Copy className="w-5 h-5" />
+                    </button>
+
                     <button 
                       onClick={() => handleDelete(post.id)}
                       className="px-4 py-2.5 bg-red-50 text-red-500 rounded-xl hover:bg-red-100 hover:text-red-600 transition-colors flex items-center justify-center"
                       title="Delete Draft"
                     >
-                      <Trash2 className="w-4.5 h-4.5" />
+                      <Trash2 className="w-5 h-5" />
                     </button>
                   </div>
                 </motion.div>
