@@ -31,6 +31,10 @@ Lumina AI solves the problem of unpredictable automated generation by offering a
 
 ## 🏃‍♂️ Running Locally
 
+### Screenshot
+<img width="1912" height="906" alt="image" src="https://github.com/user-attachments/assets/49f40443-190d-4020-b779-d92c1a7f25ab" />
+
+
 ### 1. Clone the repository
 ```bash
 git clone <your-repo-url>
