@@ -29,11 +29,10 @@ Lumina AI solves the problem of unpredictable automated generation by offering a
 4. **Database Write:** The AI's generated response is successfully written to a Firestore collection.
 5. **Real-time UI Update:** The Next.js frontend, actively listening via `onSnapshot`, instantly detects the new document and animates the new content onto the screen without a page refresh.
 
-## 🏃‍♂️ Running Locally
-
 ### Screenshot
 <img width="1912" height="906" alt="image" src="https://github.com/user-attachments/assets/49f40443-190d-4020-b779-d92c1a7f25ab" />
 
+## 🏃‍♂️ Running Locally
 
 ### 1. Clone the repository
 ```bash
