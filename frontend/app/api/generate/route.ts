@@ -11,7 +11,7 @@ export async function POST(req: Request) {
     const { prompt } = body;
 
     if (!prompt) {
-      return NextResponse.json({ error: "Prompt is required" }, { status: 400 });
+      return NextResponse.json({ success: false, error: "Prompt is required" }, { status: 400 });
     }
 
     // 2. Select the Gemini model (Flash is insanely fast for real-time UIs)
@@ -29,8 +29,21 @@ export async function POST(req: Request) {
 
   } catch (error: any) {
     console.error("AI Generation Error:", error);
+    
+    // --- NEW: Specifically catch Google's 503 Overloaded or rate limits ---
+    if (error.message?.includes("503") || error.status === 503) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: "Google's AI servers are currently experiencing high demand. Please wait a few seconds and click Generate again." 
+        },
+        { status: 503 }
+      );
+    }
+
+    // Catch any other general errors safely
     return NextResponse.json(
-      { error: error.message || "Something went wrong generating the content" }, 
+      { success: false, error: error.message || "Something went wrong generating the content" }, 
       { status: 500 }
     );
   }
