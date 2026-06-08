@@ -1,4 +1,4 @@
-##✨ Lumina AI
+## ✨ Lumina AI
 
 **A real-time, human-in-the-loop AI agent for social media content and caption generation.**
 
