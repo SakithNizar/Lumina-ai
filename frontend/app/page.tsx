@@ -105,7 +105,7 @@ export default function Dashboard() {
               <Sparkles className="w-8 h-8 text-blue-500" />
               Lumina AI
             </h1>
-            <p className="text-slate-500 mt-2 font-medium">Real-time social media generation engine.</p>
+            <p className="text-slate-500 mt-2 font-medium">Real-time social media caption generation engine.</p>
           </div>
           
           <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-full shadow-sm border border-slate-200">
