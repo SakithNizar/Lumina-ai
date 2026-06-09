@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { collection, onSnapshot, orderBy, query, doc, updateDoc, deleteDoc, addDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, CheckCircle2, MessageSquare, Clock, Check, Trash2, Send, Loader2, Copy } from "lucide-react";
+import { Sparkles, CheckCircle2, MessageSquare, Clock, Check, Trash2, Send, Loader2, Copy, RefreshCw } from "lucide-react";
 
 interface SocialPost {
   id: string;
@@ -19,6 +19,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [prompt, setPrompt] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [regeneratingId, setRegeneratingId] = useState<string | null>(null);
 
   // --- Copy to Clipboard Function ---
   const handleCopy = (text: string) => {
@@ -69,6 +70,35 @@ export default function Dashboard() {
       console.error("Error generating post:", error);
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  // --- Regenerate Function ---
+  const handleRegenerate = async (id: string, rawInput: string) => {
+    setRegeneratingId(id);
+    
+    try {
+      const response = await fetch('/api/regenerate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          documentId: id,
+          originalPrompt: rawInput,
+        }),
+      });
+
+      if (!response.ok) {
+        if (response.status === 503) {
+           alert("Traffic is high. Please try again in a moment.");
+        } else {
+           console.error('Failed to regenerate');
+        }
+      }
+      // Firestore onSnapshot listener automatically updates the UI from here
+    } catch (error) {
+      console.error("Error regenerating:", error);
+    } finally {
+      setRegeneratingId(null);
     }
   };
 
@@ -179,9 +209,25 @@ export default function Dashboard() {
                         <CheckCircle2 className="w-3.5 h-3.5" />
                         {post.status || "Draft Review"}
                       </span>
+                      
+                      {/* New Regenerate Button */}
+                      <button 
+                        onClick={() => handleRegenerate(post.id, post.rawInput)}
+                        disabled={regeneratingId === post.id}
+                        className="p-1.5 text-slate-400 hover:text-blue-600 transition-colors disabled:opacity-50 rounded-lg hover:bg-blue-50"
+                        title="Regenerate this draft"
+                      >
+                        <motion.div
+                          animate={{ rotate: regeneratingId === post.id ? 360 : 0 }}
+                          transition={{ repeat: regeneratingId === post.id ? Infinity : 0, duration: 1, ease: "linear" }}
+                        >
+                          <RefreshCw size={18} />
+                        </motion.div>
+                      </button>
                     </div>
                     
-                    <div className="mb-6">
+                    {/* Content area with opacity transition during regeneration */}
+                    <div className={`mb-6 transition-opacity duration-300 ${regeneratingId === post.id ? 'opacity-40' : 'opacity-100'}`}>
                       <p className="text-slate-800 text-lg leading-relaxed whitespace-pre-wrap font-medium">
                         {post.generatedText}
                       </p>
