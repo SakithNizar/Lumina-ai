@@ -27,8 +27,8 @@ export async function POST(req: Request) {
     // 4. Update the exact same document in Firestore
     const docRef = doc(db, 'socialPosts', documentId);
     await updateDoc(docRef, {
-      content: newContent,
-      updatedAt: new Date(),
+      generatedText: newContent,
+      timestamp: new Date(),
     });
 
     return NextResponse.json({ success: true });
